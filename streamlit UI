@@ -1,0 +1,135 @@
+import streamlit as st
+import pandas as pd
+import openpyxl
+from pdfminer.high_level import extract_text
+
+# Add custom CSS for dark theme with light gray main content
+st.markdown(
+    """
+    <style>
+        body {
+            background-color: #1E1E1E;
+            color: #FFFFFF;
+        }
+        .stButton > button {
+            background-color: #4CAF50;
+        }
+        .stTextInput > div > div > input {
+            background-color: #2D2D2D;
+            color: #FFFFFF;
+        }
+        .stTextInput > div > div > input:focus {
+            box-shadow: 0 0 0 0.2rem #4CAF50;
+        }
+        .st-d1, .st-dc {
+            background-color: #E8E8E8; /* Light gray color for main content */
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+def upload_file():
+    """Uploads an Excel or PDF file."""
+    file_upload = st.file_uploader("Upload an Excel or PDF file:", type=["xlsx", "pdf"])
+    if file_upload:
+        return file_upload
+
+def read_excel(file_upload):
+    """Reads an Excel file."""
+    try:
+        df = pd.read_excel(file_upload, engine="openpyxl")
+        return df
+    except Exception as e:
+        st.error(f"Error reading Excel file: {e}")
+        return None
+
+def generate_answers(file_upload):
+    """Generates answers to questions in an Excel or PDF file."""
+    if file_upload:
+        if file_upload.name.endswith(".xlsx"):
+            df = read_excel(file_upload)
+            if df is not None:
+                return df
+            return None
+        elif file_upload.name.endswith(".pdf"):
+            try:
+                text = extract_text(file_upload)
+                return text
+            except Exception as e:
+                st.error(f"Error extracting text from PDF file: {e}")
+                return None
+    return None
+
+def get_sophisticated_answer(question):
+    """Placeholder function for sophisticated answer logic."""
+    if "weather" in question.lower():
+        return "I'm sorry, I cannot provide real-time weather information."
+    elif "meaning of life" in question.lower():
+        return "The meaning of life is a philosophical question and varies from person to person."
+    else:
+        return "I'm sorry, I don't have an answer for that question."
+
+def main():
+    st.title("Welcome to LBG Generative AI user Interface")
+    st.sidebar.title("Interactive Chat Interface")
+
+    # Upload the file
+    file_upload = upload_file()
+
+    # Generate the answers
+    if file_upload:
+        result = generate_answers(file_upload)
+
+        if result is not None:
+            # Display the extracted data
+            st.subheader("Extracted Data:")
+            if isinstance(result, pd.DataFrame):
+                st.dataframe(result)
+            elif isinstance(result, str):
+                st.write(result)
+
+            # Download button for extracted data
+            st.subheader("Download Generated Data")
+            if st.button("Download data", key="download_button"):
+                if isinstance(result, pd.DataFrame):
+                    # Download the DataFrame as a CSV file
+                    st.dataframe(result)  # Display the DataFrame
+                    st.download_button(
+                        label="",
+                        data=result.to_csv(index=False).encode(),
+                        file_name="extracted_data.csv",
+                        mime="text/csv",
+                    )
+                elif isinstance(result, str):
+                    # Download the extracted text as a text file
+                    st.download_button(
+                        label="",
+                        data=result.encode(),
+                        file_name="extracted_data.txt",
+                        mime="text/plain",
+                    )
+
+            # Chat Interface on the right side
+            st.sidebar.subheader("Ask a Question:")
+            user_input = st.sidebar.text_input("")
+
+            if st.sidebar.button("Get Answer"):
+                answer= get_sophisticated_answer(user_input)
+            
+            
+                
+
+                st.sidebar.subheader("User:")
+                st.sidebar.write(user_input)
+
+                st.sidebar.subheader("Bot:")
+                st.sidebar.write(answer)
+
+        else:
+            st.warning("Error generating answers.")
+    else:
+        st.info("Please Upload an Excel or PDF file to get started.")
+
+if __name__ == "__main__":
+    main()
