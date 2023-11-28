@@ -1,0 +1,64 @@
+import streamlit as st
+import langchain
+import vertex_ai_client
+from google.cloud import vertex_ai
+
+# Initialize Vertex AI text client
+vertex_ai_text_client = vertex_ai_client.TextServiceClient()
+
+# Initialize LangChain agent
+agent = langchain.Agent()
+
+# Define a LangChain tool to call the Vertex AI PaLM API
+@agent.tool(name="palm")
+def palm(text):
+    # Create a Vertex AI text query request
+    request = vertex_ai_text_client.TextGenerationRequest()
+    request.query_input.text = text
+
+    # Send the query to the Vertex AI PaLM API
+    response = vertex_ai_text_client.generate_text(request)
+
+    # Extract the generated text from the response
+    generated_text = response.generations[0].text
+
+    return generated_text
+
+# Define a LangChain tool to call the Matching Engine
+@agent.tool(name="match")
+def match(query, documents):
+    # Create a Matching Engine query request
+    request = vertex_ai.matching_engine.types.MatchQueryRequest()
+    request.query = query
+
+    # Set the list of documents to search
+    request.documents.extend(documents)
+
+    # Send the query to the Matching Engine
+    response = vertex_ai.matching_engine.MatchServiceClient.search_documents(request)
+
+    # Extract the matched documents from the response
+    matched_documents = [doc.id for doc in response.documents]
+
+    return matched_documents
+
+# Define a callback function to be called when the user clicks the "Ask" button
+def ask_question():
+    # Get the user's question
+    query = st.session_state["query"]
+
+    # Process the query using LangChain
+    response = agent.run(tools=["palm", "match"], inputs={"text": query, "documents": ["document1.txt", "document2.txt", "document3.txt"]})
+
+    # Display the response to the user
+    st.write(response)
+
+# Create the Streamlit app
+st.title("Ask your documents")
+st.image("https://i.imgur.com/f3wU3r7.png")
+
+# Display the input field for the user's question
+st.text_input("Question", key="query")
+
+# Display the "Ask" button
+st.button("Ask", on_click=ask_question)
