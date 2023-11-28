@@ -55,10 +55,32 @@ def ask_question():
 
 # Create the Streamlit app
 st.title("Ask your documents")
-st.image("https://i.imgur.com/f3wU3r7.png")
 
 # Display the input field for the user's question
 st.text_input("Question", key="query")
 
 # Display the "Ask" button
 st.button("Ask", on_click=ask_question)
+
+===================-88888888888888888888888888--------------
+
+# Create the Streamlit app
+st.title("Q&A System")
+
+# Define the input field for user queries
+query = st.text_input("Ask a question:")
+
+# If a query is submitted, process it using LangChain
+if query:
+    # Use the "palm" tool to generate an initial response
+    initial_response = agent.run(tools=["palm"], inputs={"text": query})
+
+    # Use the "match" tool to find relevant documents
+    relevant_documents = agent.run(tools=["match"], inputs={"query": query, "documents": ["document1.txt", "document2.txt", "document3.txt"]})
+
+    # Combine the initial response and relevant documents for the final response
+    final_response = initial_response + ". Additionally, you may find these documents relevant: " + ", ".join(relevant_documents)
+
+    # Display the final response to the user
+    st.write(final_response)
+
