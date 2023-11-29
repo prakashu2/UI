@@ -84,3 +84,26 @@ if query:
     # Display the final response to the user
     st.write(final_response)
 
+
+========================7777777777777777===========
+
+# Define a function to create the UI
+def create_ui():
+    # Set the page title and layout
+    st.title("Ask your documents")
+    st.set_page_config(layout="wide")
+
+    # Create a sidebar
+    with st.sidebar:
+        st.image("https://i.imgur.com/f3wU3r7.png")
+
+    # Create a text input field for the user's question
+    st.text_input("Question", key="query", placeholder="What do you want to know?")
+
+    # Create a button to submit the user's question
+    st.button("Ask", on_click=ask_question)
+
+# Create the Streamlit app
+create_ui()
+
+
