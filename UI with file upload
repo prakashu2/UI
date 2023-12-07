@@ -1,0 +1,340 @@
+import streamlit as st
+import langchain
+import vertex_ai_client
+from google.cloud import vertex_ai
+import PyPDF2
+import openpyxl
+
+# Initialize Vertex AI text client
+vertex_ai_text_client = vertex_ai_client.TextServiceClient()
+
+# Initialize LangChain agent
+agent = langchain.Agent()
+
+# Define a LangChain tool to call the Vertex AI PaLM API
+@agent.tool(name="palm")
+def palm(text):
+    # Create a Vertex AI text query request
+    request = vertex_ai_text_client.TextGenerationRequest()
+    request.query_input.text = text
+
+    # Send the query to the Vertex AI PaLM API
+    response = vertex_ai_text_client.generate_text(request)
+
+    # Extract the generated text from the response
+    generated_text = response.generations[0].text
+
+    return generated_text
+
+# Define a LangChain tool to process PDF documents
+@agent.tool(name="process_pdf")
+def process_pdf(file):
+    # Read the PDF file
+    reader = PyPDF2.PdfReader(file)
+
+    # Extract text from all pages
+    text = ""
+    for page in reader.pages:
+        text += page.extractText()
+
+    return text
+
+# Define a LangChain tool to process Excel documents
+@agent.tool(name="process_excel")
+def process_excel(file):
+    # Open the Excel workbook
+    wb = openpyxl.load_workbook(file)
+
+    # Extract text from all sheets
+    text = ""
+    for sheet in wb.sheetnames:
+        sheet_data = wb[sheet].values
+        for row in sheet_data:
+            for cell in row:
+                text += str(cell)
+
+    return text
+
+# Define a function to handle uploaded files
+def upload_file():
+    uploaded_file = st.file_uploader("Upload a document", type=["pdf", "xlsx"])
+    if uploaded_file is not None:
+        # Extract file extension
+        file_extension = uploaded_file.name.split(".")[-1]
+
+        # Process the uploaded file using the appropriate tool
+        if file_extension == "pdf":
+            document_text = agent.run(tools=["process_pdf"], inputs={"file": uploaded_file})
+        elif file_extension == "xlsx":
+            document_text = agent.run(tools=["process_excel"], inputs={"file": uploaded_file})
+
+        # Add the extracted text to the list of documents
+        st.session_state["documents"].append(document_text)
+
+# Define a callback function to be called when the user clicks the "Ask" button
+def ask_question():
+    # Get the user's query
+    query = st.session_state["query"]
+
+    # Process the query using LangChain
+    response = agent.run(tools=["palm", "match"], inputs={"text": query, "documents": st.session_state["documents"]})
+
+    # Display the response to the user
+    st.write(response)
+
+# Define a function to create the UI
+def create_ui():
+    # Set the page title and layout
+    st.title("Ask your documents")
+    st.set_page_config(layout="wide")
+
+    # Create a sidebar
+    with st.sidebar:
+        upload_file()
+
+    # Create a text input field for the user's question
+    st.text_input("Question", key="query", placeholder="What do you want to know?")
+
+    # Create a button to submit the user's question
+    st.button("Ask", on_click=ask_question)
+
+# Initialize session state
+st.session_state["documents"] = []
+
+# Create the Streamlit app
+create_ui()
+==============================================**************************====================================
+import streamlit as st
+import langchain
+import vertex_ai_client
+from google.cloud import vertex_ai
+import pandas as pd
+from PyPDF2 import PdfReader
+
+# Initialize Vertex AI text client
+vertex_ai_text_client = vertex_ai_client.TextServiceClient()
+
+# Initialize LangChain agent
+agent = langchain.Agent()
+
+# Define a LangChain tool to call the Vertex AI PaLM API
+@agent.tool(name="palm")
+def palm(text):
+    # Create a Vertex AI text query request
+    request = vertex_ai_text_client.TextGenerationRequest()
+    request.query_input.text = text
+
+    # Send the query to the Vertex AI PaLM API
+    response = vertex_ai_text_client.generate_text(request)
+
+    # Extract the generated text from the response
+    generated_text = response.generations[0].text
+
+    return generated_text
+
+# Define a LangChain tool to extract text from PDFs
+@agent.tool(name="pdf_extractor")
+def pdf_extractor(filename):
+    # Open the PDF file
+    reader = PdfReader(filename)
+
+    # Extract text from all pages
+    text = ""
+    for page in reader.pages:
+        text += page.extractText()
+
+    return text
+
+# Define a LangChain tool to extract text from Excel spreadsheets
+@agent.tool(name="excel_extractor")
+def excel_extractor(filename):
+    # Read the Excel spreadsheet
+    data = pd.read_excel(filename)
+
+    # Convert the data to text
+    text = data.to_string(index=False)
+
+    return text
+
+# Define a LangChain tool to call the Matching Engine
+@agent.tool(name="match")
+def match(query, documents):
+    # Create a Matching Engine query request
+    request = vertex_ai.matching_engine.types.MatchQueryRequest()
+    request.query = query
+
+    # Set the list of documents to search
+    request.documents.extend(documents)
+
+    # Send the query to the Matching Engine
+    response = vertex_ai.matching_engine.MatchServiceClient.search_documents(request)
+
+    # Extract the matched documents from the response
+    matched_documents = [doc.id for doc in response.documents]
+
+    return matched_documents
+
+# Define a callback function to be called when the user clicks the "Ask" button
+def ask_question():
+    # Get the user's question
+    query = st.session_state["query"]
+
+    # Get uploaded files
+    uploaded_files = st.session_state["uploaded_files"]
+
+    # Process uploaded documents
+    extracted_text = []
+    for file in uploaded_files:
+        if file.name.endswith(".pdf"):
+            extracted_text.append(agent.run(tools=["pdf_extractor"], inputs={"filename": file}))
+        elif file.name.endswith(".xlsx"):
+            extracted_text.append(agent.run(tools=["excel_extractor"], inputs={"filename": file}))
+
+    # Combine extracted text with uploaded documents
+    documents = extracted_text + uploaded_files.name.tolist()
+
+    # Process the query using LangChain
+    response = agent.run(tools=["palm", "match"], inputs={"text": query, "documents": documents})
+
+    # Display the response to the user
+    st.write(response)
+
+# Define a function to create the UI
+def create_ui():
+    # Set the page title and layout
+    st.title("Ask your documents")
+    st.set_page_config(layout="wide")
+
+    # Create a sidebar
+    with st.sidebar:
+        st.image("https://i.imgur.com/f3wU3r7.png")
+
+    # Create a text input field for the user's question
+    st.text_input("Question", key="query", placeholder="What do you want to know?")
+
+    # Create a file uploader for PDF and Excel documents
+    uploaded_files = st.file_uploader("Upload Documents", accept=".pdf, .xlsx", key="uploaded_files")
+
+    # Create a button to submit the user's question
+    st.button("Ask", on_click=ask_question)
+
+# Create the Streamlit app
+create_ui()
+==================================================================xxxxxxxxxxxxxxxxxxxxxxxxx==
+import streamlit as st
+import langchain
+import vertex_ai_client
+from google.cloud import vertex_ai
+import PyPDF2
+import openpyxl
+
+# Initialize Vertex AI text client
+vertex_ai_text_client = vertex_ai_client.TextServiceClient()
+
+# Initialize LangChain agent
+agent = langchain.Agent()
+
+# Define a LangChain tool to call the Vertex AI PaLM API
+@agent.tool(name="palm")
+def palm(text):
+    # Create a Vertex AI text query request
+    request = vertex_ai_text_client.TextGenerationRequest()
+    request.query_input.text = text
+
+    # Send the query to the Vertex AI PaLM API
+    response = vertex_ai_text_client.generate_text(request)
+
+    # Extract the generated text from the response
+    generated_text = response.generations[0].text
+
+    return generated_text
+
+# Define a LangChain tool to call the Matching Engine
+@agent.tool(name="match")
+def match(query, documents):
+    # Create a Matching Engine query request
+    request = vertex_ai.matching_engine.types.MatchQueryRequest()
+    request.query = query
+
+    # Set the list of documents to search
+    request.documents.extend(documents)
+
+    # Send the query to the Matching Engine
+    response = vertex_ai.matching_engine.MatchServiceClient.search_documents(request)
+
+    # Extract the matched documents from the response
+    matched_documents = [doc.id for doc in response.documents]
+
+    return matched_documents
+
+# Define a function to read the text from a PDF file
+def read_pdf(file):
+    # Open the PDF file
+    with open(file, "rb") as f:
+        reader = PyPDF2.PdfReader(f)
+
+    # Extract the text from all pages
+    text = ""
+    for page in reader.pages:
+        text += page.extractText()
+
+    return text
+
+# Define a function to read the text from an Excel file
+def read_excel(file):
+    # Open the Excel file
+    wb = openpyxl.load_workbook(file)
+
+    # Extract the text from all sheets
+    text = ""
+    for sheet in wb.worksheets:
+        for row in sheet.rows:
+            for cell in row:
+                text += cell.value
+
+    return text
+
+# Define a callback function to be called when the user clicks the "Ask" button
+def ask_question():
+    # Get the user's question
+    query = st.session_state["query"]
+
+    # Get uploaded documents
+    uploaded_files = st.session_state.get("uploaded_files", [])
+
+    # Process uploaded documents
+    documents = []
+    for file in uploaded_files:
+        if file.type == "application/pdf":
+            documents.append(read_pdf(file))
+        elif file.type == "application/vnd.ms-excel":
+            documents.append(read_excel(file))
+
+    # Process the query using LangChain
+    response = agent.run(tools=["palm", "match"], inputs={"text": query, "documents": documents})
+
+    # Display the response to the user
+    st.write(response)
+
+# Define a function to create the UI
+def create_ui():
+    # Set the page title and layout
+    st.title("Ask your documents")
+    st.set_page_config(layout="wide")
+ 
+    # Create a sidebar
+    with st.sidebar:
+        st.image("https://i.imgur.com/f3wU3r7.png")
+
+    # Create a text input field for the user's question
+    st.text_input("Question", key="query", placeholder="What do you want to know?")
+
+    # Create a file upload widget
+    st.file_uploader("Upload documents", key="uploaded_files", accept=".pdf,.xlsx")
+
+    # Create a button to submit the user's question
+    st.button("Ask", on_click=ask_question)
+
+# Create the Streamlit app
+create_ui()
+
