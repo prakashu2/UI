@@ -1,41 +1,23 @@
-# Streamlit App Deployment
+# Project Repository
 
-This project contains a Streamlit app deployed on Google Cloud Run.
+## Overview
 
-## Instructions
+This repository contains code and resources related to [Generative AI Applications with Vertex AI, PaLM 2 Models, and LangChain](https://cloud.google.com/blog/products/ai-machine-learning/generative-ai-applications-with-vertex-ai-palm-2-models-and-langchain) blog post.
 
-1. Set up your Python virtual environment:
+## Contents
 
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
+- **Code:** The repository includes code snippets, scripts, or notebooks used in the blog post.
 
-2. Install dependencies:
+- **Resources:** Supplementary resources, datasets, or additional materials can be found in the `resources` directory.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+## Blog Post
 
-3. Build and run the app locally:
+Read the accompanying blog post: [Generative AI Applications with Vertex AI, PaLM 2 Models, and LangChain](https://cloud.google.com/blog/products/ai-machine-learning/generative-ai-applications-with-vertex-ai-palm-2-models-and-langchain).
 
-    ```bash
-    streamlit run your_script_name.py
-    ```
+## Requirements
 
-4. Build and push Docker image:
+Specify any software dependencies or prerequisites needed to run the code in this repository.
 
-    ```bash
-    docker build -t gcr.io/your-project-id/your-image-name .
-    docker push gcr.io/your-project-id/your-image-name
-    ```
-
-5. Deploy on Google Cloud Run:
-
-    ```bash
-    gcloud run deploy --image gcr.io/your-project-id/your-image-name --platform managed
-    ```
-
-6. Access your app on Cloud Run.
-
-For more details, refer to the [official documentation](https://docs.streamlit.io/) and [Google Cloud Run documentation](https://cloud.google.com/run/docs).
+```bash
+# Example
+pip install -r requirements.txt
