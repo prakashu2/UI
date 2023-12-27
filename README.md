@@ -26,7 +26,7 @@ Create a service account with the roles/vertexai.user role.
 Download the service account key file.
 Set the GOOGLE_APPLICATION_CREDENTIALS environment variable to the path of the service account key file.
 Run the following code to create a PaLM model instance:
-Python
+## Python
 from google.cloud import aiplatform
 
 client = aiplatform.gapic.EndpointServiceClient(client_options={"api_endpoint": "us-central1-aiplatform.googleapis.com"})
@@ -37,7 +37,7 @@ endpoint = client.create_endpoint(
     location="us-central1",
     deployable_models=["544954655441546545445546"],
 )
-Use code with caution. Learn more
+
 Once the endpoint is created, you can send requests to it using the Vertex AI SDK.
 ## Examples
 
